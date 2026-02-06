@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart City Navigator - Pathfinding Algorithm Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .bg-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .bg-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            top: 60%;
+            right: 15%;
+            animation-delay: 3s;
+        }
+
+        .bg-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 6s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) translateX(0) scale(1);
+                opacity: 0.3;
+            }
+            33% {
+                transform: translateY(-30px) translateX(20px) scale(1.1);
+                opacity: 0.5;
+            }
+            66% {
+                transform: translateY(20px) translateX(-20px) scale(0.9);
+                opacity: 0.4;
+            }
+        }
+
+        /* Navigation */
+        nav {
+            position: relative;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo i {
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.8) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: white;
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 80px 40px 60px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 72px;
+            font-weight: 900;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.9) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .hero p {
+            font-size: 22px;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 800px;
+            margin: 0 auto 40px;
+            line-height: 1.6;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Stats Section */
+        .stats {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .stat-card .number {
+            font-size: 48px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Algorithms Section */
+        .algorithms {
+            position: relative;
+            z-index: 10;
+            max-width: 1400px;
+            margin: 60px auto;
+            padding: 0 40px;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: white;
+        }
+
+        .section-header p {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .algo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 80px;
+        }
+
+        .algo-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .algo-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .algo-card.dijkstra::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+        .algo-card.astar::before { background: linear-gradient(90deg, #f093fb, #f5576c); }
+        .algo-card.bfs::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
+        .algo-card.dfs::before { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+
+        .algo-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+        }
+
+        .algo-card:hover::before {
+            height: 100%;
+            opacity: 0.05;
+        }
+
+        .algo-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 24px;
+        }
+
+        .algo-card.dijkstra .algo-icon { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .algo-card.astar .algo-icon { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .algo-card.bfs .algo-icon { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .algo-card.dfs .algo-icon { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+        .algo-card h3 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+
+        .algo-card .subtitle {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .algo-card p {
+            font-size: 15px;
+            color: #64748b;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .features-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #475569;
+        }
+
+        .feature-item i {
+            color: #48bb78;
+            font-size: 16px;
+        }
+
+        .complexity-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #667eea;
+            margin-top: 16px;
+        }
+
+        .algo-card.astar .complexity-badge { background: rgba(240, 147, 251, 0.1); color: #f093fb; }
+        .algo-card.bfs .complexity-badge { background: rgba(79, 172, 254, 0.1); color: #4facfe; }
+        .algo-card.dfs .complexity-badge { background: rgba(67, 233, 123, 0.1); color: #43e97b; }
+
+        .explore-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: transparent;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            color: #2d3748;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 20px;
+        }
+
+        .algo-card.dijkstra .explore-btn:hover { border-color: #667eea; color: #667eea; }
+        .algo-card.astar .explore-btn:hover { border-color: #f093fb; color: #f093fb; }
+        .algo-card.bfs .explore-btn:hover { border-color: #4facfe; color: #4facfe; }
+        .algo-card.dfs .explore-btn:hover { border-color: #43e97b; color: #43e97b; }
+
+        /* Footer */
+        footer {
+            position: relative;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            text-align: center;
+            margin-top: 80px;
+        }
+
+        footer p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 42px; }
+            .hero p { font-size: 18px; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .nav-links { display: none; }
+            .algo-grid { grid-template-columns: 1fr; }
+            .section-header h2 { font-size: 36px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
+    </div>
+
+    <nav>
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-route"></i>
+                Smart Navigator
+            </a>
+            <div class="nav-links">
+                <a href="#algorithms">Algorithms</a>
+                <a href="about.html">About</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <h1>Navigate Smarter</h1>
+        <p>Explore and visualize powerful pathfinding algorithms on real-world maps. Find optimal routes using Dijkstra, A*, BFS, and DFS with live interactive demonstrations.</p>
+        <div class="hero-buttons">
+            <a href="#algorithms" class="btn btn-primary">
+                <i class="fas fa-compass"></i>
+                Explore Algorithms
+            </a>
+            <a href="about.html" class="btn btn-secondary">
+                <i class="fas fa-info-circle"></i>
+                Learn More
+            </a>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stat-card">
+            <div class="number">4</div>
+            <div class="label">Algorithms</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">100%</div>
+            <div class="label">Accurate</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">∞</div>
+            <div class="label">Routes</div>
+        </div>
+        <div class="stat-card">
+            <div class="number">Real</div>
+            <div class="label">Maps</div>
+        </div>
+    </section>
+
+    <section class="algorithms" id="algorithms">
+        <div class="section-header">
+            <h2>Choose Your Algorithm</h2>
+            <p>Each algorithm has unique strengths. Select one to see it in action on real city streets.</p>
+        </div>
+
+        <div class="algo-grid">
+            <a href="dijkstra.html" class="algo-card dijkstra">
+                <div class="algo-icon">D</div>
+                <h3>Dijkstra's Algorithm</h3>
+                <div class="subtitle">Guaranteed Shortest Path</div>
+                <p>The gold standard for weighted graphs. Systematically explores all possible routes to guarantee the absolute shortest path between two points.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Guaranteed optimal solution</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Works with weighted graphs</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Industry standard for GPS</span>
+                    </div>
+                </div>
+
+                <div class="complexity-badge">
+                    <i class="fas fa-clock"></i>
+                    O((V + E) log V)
+                </div>
+
+                <div class="explore-btn">
+                    Explore Dijkstra
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="astar.html" class="algo-card astar">
+                <div class="algo-icon">A*</div>
+                <h3>A* Algorithm</h3>
+                <div class="subtitle">Intelligent Heuristic Search</div>
+                <p>Combines Dijkstra's reliability with intelligent heuristics. Uses estimated distance to goal for faster pathfinding while maintaining optimality.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Faster than Dijkstra</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Optimal with admissible heuristic</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Used in game AI & robotics</span>
+                    </div>
+                </div>
+
+                <div class="complexity-badge">
+                    <i class="fas fa-rocket"></i>
+                    O(E) with good heuristic
+                </div>
+
+                <div class="explore-btn">
+                    Explore A*
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="bfs.html" class="algo-card bfs">
+                <div class="algo-icon">BFS</div>
+                <h3>Breadth-First Search</h3>
+                <div class="subtitle">Layer-by-Layer Exploration</div>
+                <p>Explores all neighbors at the current depth before moving deeper. Ideal for unweighted graphs and finding paths with minimum edges.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Shortest path in unweighted graphs</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Minimum number of hops</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Complete search guarantee</span>
+                    </div>
+                </div>
+
+                <div class="complexity-badge">
+                    <i class="fas fa-layer-group"></i>
+                    O(V + E)
+                </div>
+
+                <div class="explore-btn">
+                    Explore BFS
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="dfs.html" class="algo-card dfs">
+                <div class="algo-icon">DFS</div>
+                <h3>Depth-First Search</h3>
+                <div class="subtitle">Deep Exploration First</div>
+                <p>Explores as far as possible along each branch before backtracking. Memory efficient and excellent for maze solving and path existence.</p>
+                
+                <div class="features-list">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Memory efficient</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Great for maze solving</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Simple implementation</span>
+                    </div>
+                </div>
+
+                <div class="complexity-badge">
+                    <i class="fas fa-tree"></i>
+                    O(V + E)
+                </div>
+
+                <div class="explore-btn">
+                    Explore DFS
+                    <i class="fas fa-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+    </section>
+
+    <footer>
+        <p>&copy; 2024 Smart City Navigator. All rights reserved. Built with ❤️ for pathfinding enthusiasts.</p>
+    </footer>
+
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Animate on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.8s ease-out forwards';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.algo-card').forEach(card => {
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>
