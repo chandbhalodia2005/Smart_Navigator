@@ -116,19 +116,6 @@
         .pin-btn.end { background: var(--danger); color: white; }
         .pin-btn:hover { transform: scale(1.05); }
         
-        .algo-option {
-            padding: 12px; border: 2px solid var(--border);
-            border-radius: 8px; margin-bottom: 8px;
-            cursor: pointer; transition: all 0.3s ease;
-            background: white;
-        }
-        .algo-option:hover { border-color: var(--primary); }
-        .algo-option.selected {
-            border-color: var(--primary); background: rgba(102, 126, 234, 0.05);
-        }
-        .algo-option h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-        .algo-option p { font-size: 12px; color: #64748b; }
-        
         .btn {
             width: 100%; padding: 14px 20px; border: none; border-radius: 10px;
             font-size: 16px; font-weight: 600; cursor: pointer;
@@ -187,6 +174,69 @@
         }
         .stat-card .label {
             font-size: 12px; color: #64748b; margin-top: 4px;
+        }
+
+        .location-display {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            color: #475569;
+            border-left: 4px solid var(--primary);
+        }
+
+        .location-display strong {
+            color: var(--dark);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .routes-info {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        .routes-info h5 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 12px;
+        }
+
+        .route-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .route-item:last-child {
+            border-bottom: none;
+        }
+
+        .route-item .route-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .route-item .route-distance {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .route-item.shortest {
+            background: rgba(102, 126, 234, 0.05);
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .route-item.shortest .route-label {
+            color: var(--primary);
+            font-weight: 600;
         }
 
         .loading {
@@ -272,14 +322,14 @@
             <h3><i class="fas fa-map-marker-alt"></i> Location Settings</h3>
             
             <div class="input-group">
-                <label>City / Region</label>
-                <input type="text" id="cityInput" value="Ahmedabad, India" placeholder="Enter city name...">
+                <label>City / Region (auto-searches as you type)</label>
+                <input type="text" id="cityInput" value="Ahmedabad, India" placeholder="Type city name...">
             </div>
             
             <div class="input-group">
                 <label>Start Location</label>
                 <div class="location-input">
-                    <input type="text" id="startInput" placeholder="Click map or search...">
+                    <input type="text" id="startInput" placeholder="Click pin, then click map..." readonly>
                     <button class="pin-btn start" onclick="enableClick('start')" title="Click to select on map">
                         <i class="fas fa-map-pin"></i>
                     </button>
@@ -289,7 +339,7 @@
             <div class="input-group">
                 <label>Destination</label>
                 <div class="location-input">
-                    <input type="text" id="endInput" placeholder="Click map or search...">
+                    <input type="text" id="endInput" placeholder="Click flag, then click map..." readonly>
                     <button class="pin-btn end" onclick="enableClick('end')" title="Click to select on map">
                         <i class="fas fa-flag-checkered"></i>
                     </button>
@@ -309,6 +359,9 @@
 
         <div id="resultsPanel" class="results">
             <h4><i class="fas fa-chart-line"></i> Route Analysis</h4>
+            
+            <div id="locationInfo"></div>
+            
             <div class="stat-grid">
                 <div class="stat-card">
                     <span class="value" id="distVal">0</span>
@@ -323,10 +376,12 @@
                     <div class="label">Est. Time (min)</div>
                 </div>
                 <div class="stat-card">
-                    <span class="value">DIJKSTRA</span>
-                    <div class="label">Algorithm</div>
+                    <span class="value" id="routeCount">0</span>
+                    <div class="label">Routes Found</div>
                 </div>
             </div>
+
+            <div id="routesList" class="routes-info"></div>
         </div>
     </div>
 
@@ -361,13 +416,50 @@
         // Global Variables
         var startMarker = null, endMarker = null, routeLine = null;
         var startCoords = null, endCoords = null;
+        var startLocationName = '', endLocationName = '';
         var clickMode = null;
         var distanceBadge = null;
         var alternativeRoutes = [];
+        var allRoutes = [];
 
         // Geocoder
         var geocoder = L.Control.Geocoder.nominatim();
         L.Control.geocoder({ defaultMarkGeocode: false }).addTo(map);
+
+        // City input - AUTO SEARCH as user types
+        let citySearchTimeout;
+        document.getElementById('cityInput').addEventListener('input', function(e) {
+            clearTimeout(citySearchTimeout);
+            const cityName = e.target.value.trim();
+            
+            if (cityName.length > 2) {
+                citySearchTimeout = setTimeout(() => {
+                    searchCity(cityName);
+                }, 800); // Wait 800ms after user stops typing
+            }
+        });
+
+        // Also allow Enter key
+        document.getElementById('cityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                clearTimeout(citySearchTimeout);
+                searchCity(e.target.value.trim());
+            }
+        });
+
+        function searchCity(cityName) {
+            if (!cityName || cityName.length < 3) return;
+
+            geocoder.geocode(cityName, function(results) {
+                if (results && results.length > 0) {
+                    const result = results[0];
+                    map.setView(result.center, 12);
+                    showNotification('Navigated to ' + result.name, 'success');
+                } else {
+                    showNotification('Location not found. Please try different spelling.', 'warning');
+                }
+            });
+        }
 
         // Map Click Handler
         map.on('click', function(e) {
@@ -408,10 +500,10 @@
             
             startMarker.on('dragend', function(e) {
                 startCoords = e.target.getLatLng();
-                updateLocationInput('startInput', startCoords);
+                updateLocationInput('start', startCoords);
             });
             
-            updateLocationInput('startInput', latlng);
+            updateLocationInput('start', latlng);
             map.getContainer().style.cursor = '';
             showNotification('Start location set!', 'success');
         }
@@ -429,22 +521,41 @@
 
             endMarker.on('dragend', function(e) {
                 endCoords = e.target.getLatLng();
-                updateLocationInput('endInput', endCoords);
+                updateLocationInput('end', endCoords);
             });
 
-            updateLocationInput('endInput', latlng);
+            updateLocationInput('end', latlng);
             map.getContainer().style.cursor = '';
             showNotification('Destination set!', 'success');
         }
 
-        function updateLocationInput(inputId, latlng) {
+        function updateLocationInput(type, latlng) {
+            const inputId = type === 'start' ? 'startInput' : 'endInput';
             const input = document.getElementById(inputId);
+            
+            // Show coordinates immediately while fetching address
+            const coordsText = `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+            input.value = coordsText;
+            
+            // Fetch actual address
             geocoder.reverse(latlng, map.options.crs.scale(map.getZoom()), function(results) {
-                if(results.length > 0) {
-                    input.value = results[0].name;
+                let locationName = '';
+                if(results && results.length > 0) {
+                    // Get the most detailed address available
+                    locationName = results[0].name || results[0].html || coordsText;
+                    input.value = locationName;
                 } else {
-                    input.value = `${latlng.lat.toFixed(4)}, ${latlng.lng.toFixed(4)}`;
+                    locationName = coordsText;
+                    input.value = locationName;
                 }
+                
+                // Store location name for results panel
+                if (type === 'start') {
+                    startLocationName = locationName;
+                } else {
+                    endLocationName = locationName;
+                }
+                
                 input.classList.add('location-set');
                 setTimeout(() => input.classList.remove('location-set'), 2000);
             });
@@ -462,9 +573,8 @@
             btn.disabled = true;
 
             try {
-                // Use OSRM for real routing with alternatives
                 const response = await fetch(
-                    `https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}?alternatives=3&geometries=geojson&overview=full&steps=true`
+                    `https://router.project-osrm.org/route/v1/driving/${startCoords.lng},${startCoords.lat};${endCoords.lng},${endCoords.lat}?alternatives=true&geometries=geojson&overview=full&steps=true`
                 );
                 
                 const data = await response.json();
@@ -476,20 +586,32 @@
                         alternativeRoutes.forEach(route => map.removeLayer(route));
                     }
                     alternativeRoutes = [];
+                    allRoutes = [];
 
-                    // Draw all alternative routes in gray
+                    // Store all routes data
+                    data.routes.forEach((route, index) => {
+                        allRoutes.push({
+                            distance: (route.distance / 1000).toFixed(2),
+                            duration: Math.round(route.duration / 60),
+                            geometry: route.geometry,
+                            index: index
+                        });
+                    });
+
+                    // Draw alternative routes (all except the shortest)
                     for (let i = 1; i < data.routes.length; i++) {
                         const coords = data.routes[i].geometry.coordinates.map(c => [c[1], c[0]]);
                         const altRoute = L.polyline(coords, {
-                            color: '#9ca3af',
-                            weight: 4,
-                            opacity: 0.4,
-                            dashArray: '10, 10'
+                            color: '#94a3b8',
+                            weight: 5,
+                            opacity: 0.6,
+                            dashArray: '8, 8'
                         }).addTo(map);
                         alternativeRoutes.push(altRoute);
                         
                         const distance = (data.routes[i].distance / 1000).toFixed(2);
-                        altRoute.bindPopup(`<b>Alternative Route</b><br>Distance: ${distance} km`);
+                        const duration = Math.round(data.routes[i].duration / 60);
+                        altRoute.bindPopup(`<b>Alternative Route ${i}</b><br>Distance: ${distance} km<br>Time: ${duration} min`);
                     }
 
                     // Draw the shortest route (highlighted)
@@ -498,24 +620,23 @@
                     
                     routeLine = L.polyline(coords, {
                         color: '#667eea',
-                        weight: 6,
-                        opacity: 0.9
+                        weight: 7,
+                        opacity: 1.0
                     }).addTo(map);
                     
                     const distance = (shortestRoute.distance / 1000).toFixed(2);
-                    routeLine.bindPopup(`<b>Shortest Route</b><br>Distance: ${distance} km`);
+                    const duration = Math.round(shortestRoute.duration / 60);
+                    routeLine.bindPopup(`<b>Shortest Route (Dijkstra)</b><br>Distance: ${distance} km<br>Time: ${duration} min`);
                     
                     // Fit map to show all routes
                     map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
 
-                    // Calculate accurate distance and time
-                    const duration = Math.round(shortestRoute.duration / 60);
                     const waypoints = coords.length;
 
                     showDistanceBadge(distance, waypoints, duration);
-                    updateResults(distance, waypoints, duration);
+                    updateResults(distance, waypoints, duration, data.routes.length);
                     
-                    showNotification(`Found ${data.routes.length} route(s)! Showing shortest path.`, 'success');
+                    showNotification(`Found ${data.routes.length} route(s)! Shortest path highlighted.`, 'success');
                 } else {
                     showNotification('No route found between these locations', 'error');
                 }
@@ -528,13 +649,45 @@
             }
         }
 
-        function updateResults(distance, nodes, duration) {
+        function updateResults(distance, nodes, duration, routeCount) {
             const panel = document.getElementById('resultsPanel');
             panel.style.display = 'block';
+            
+            // Display location info
+            const locationInfo = document.getElementById('locationInfo');
+            locationInfo.innerHTML = `
+                <div class="location-display">
+                    <strong><i class="fas fa-map-pin" style="color: #48bb78;"></i> Start:</strong>
+                    ${startLocationName || 'Unknown location'}
+                </div>
+                <div class="location-display">
+                    <strong><i class="fas fa-flag-checkered" style="color: #f56565;"></i> Destination:</strong>
+                    ${endLocationName || 'Unknown location'}
+                </div>
+            `;
             
             animateValue('distVal', 0, parseFloat(distance), 1000);
             animateValue('nodeVal', 0, nodes, 1000);
             animateValue('timeVal', 0, duration || Math.round(distance * 2), 1000);
+            animateValue('routeCount', 0, routeCount, 1000);
+
+            // Display all routes
+            const routesList = document.getElementById('routesList');
+            let routesHTML = '<h5><i class="fas fa-road"></i> Available Routes</h5>';
+            
+            allRoutes.forEach((route, index) => {
+                const isShortest = index === 0;
+                routesHTML += `
+                    <div class="route-item ${isShortest ? 'shortest' : ''}">
+                        <span class="route-label">
+                            ${isShortest ? '<i class="fas fa-star"></i> Shortest Route' : `Route ${index + 1}`}
+                        </span>
+                        <span class="route-distance">${route.distance} km · ${route.duration} min</span>
+                    </div>
+                `;
+            });
+            
+            routesList.innerHTML = routesHTML;
         }
 
         function animateValue(elementId, start, end, duration) {
@@ -565,9 +718,11 @@
                 alternativeRoutes.forEach(route => map.removeLayer(route));
             }
             alternativeRoutes = [];
+            allRoutes = [];
             
             startMarker = null; endMarker = null; routeLine = null;
             startCoords = null; endCoords = null;
+            startLocationName = ''; endLocationName = '';
             
             document.getElementById('startInput').value = '';
             document.getElementById('endInput').value = '';

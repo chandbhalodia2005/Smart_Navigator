@@ -320,7 +320,6 @@
         }
 
         .algo-card.dijkstra::before { background: linear-gradient(90deg, #667eea, #764ba2); }
-        .algo-card.astar::before { background: linear-gradient(90deg, #f093fb, #f5576c); }
         .algo-card.bfs::before { background: linear-gradient(90deg, #4facfe, #00f2fe); }
         .algo-card.dfs::before { background: linear-gradient(90deg, #43e97b, #38f9d7); }
 
@@ -348,7 +347,6 @@
         }
 
         .algo-card.dijkstra .algo-icon { background: linear-gradient(135deg, #667eea, #764ba2); }
-        .algo-card.astar .algo-icon { background: linear-gradient(135deg, #f093fb, #f5576c); }
         .algo-card.bfs .algo-icon { background: linear-gradient(135deg, #4facfe, #00f2fe); }
         .algo-card.dfs .algo-icon { background: linear-gradient(135deg, #43e97b, #38f9d7); }
 
@@ -408,7 +406,6 @@
             margin-top: 16px;
         }
 
-        .algo-card.astar .complexity-badge { background: rgba(240, 147, 251, 0.1); color: #f093fb; }
         .algo-card.bfs .complexity-badge { background: rgba(79, 172, 254, 0.1); color: #4facfe; }
         .algo-card.dfs .complexity-badge { background: rgba(67, 233, 123, 0.1); color: #43e97b; }
 
@@ -430,7 +427,6 @@
         }
 
         .algo-card.dijkstra .explore-btn:hover { border-color: #667eea; color: #667eea; }
-        .algo-card.astar .explore-btn:hover { border-color: #f093fb; color: #f093fb; }
         .algo-card.bfs .explore-btn:hover { border-color: #4facfe; color: #4facfe; }
         .algo-card.dfs .explore-btn:hover { border-color: #43e97b; color: #43e97b; }
 
@@ -496,7 +492,7 @@
 
     <section class="hero">
         <h1>Navigate Smarter</h1>
-        <p>Explore and visualize powerful pathfinding algorithms on real-world maps. Find optimal routes using Dijkstra, A*, BFS, and DFS with live interactive demonstrations.</p>
+        <p>Explore and visualize powerful pathfinding algorithms on real-world maps. Find optimal routes using Dijkstra, BFS, and DFS with live interactive demonstrations.</p>
         <div class="hero-buttons">
             <a href="#algorithms" class="btn btn-primary">
                 <i class="fas fa-compass"></i>
@@ -511,7 +507,7 @@
 
     <section class="stats">
         <div class="stat-card">
-            <div class="number">4</div>
+            <div class="number">3</div>
             <div class="label">Algorithms</div>
         </div>
         <div class="stat-card">
@@ -563,38 +559,6 @@
 
                 <div class="explore-btn">
                     Explore Dijkstra
-                    <i class="fas fa-arrow-right"></i>
-                </div>
-            </a>
-
-            <a href="astar.html" class="algo-card astar">
-                <div class="algo-icon">A*</div>
-                <h3>A* Algorithm</h3>
-                <div class="subtitle">Intelligent Heuristic Search</div>
-                <p>Combines Dijkstra's reliability with intelligent heuristics. Uses estimated distance to goal for faster pathfinding while maintaining optimality.</p>
-                
-                <div class="features-list">
-                    <div class="feature-item">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Faster than Dijkstra</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Optimal with admissible heuristic</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-check-circle"></i>
-                        <span>Used in game AI & robotics</span>
-                    </div>
-                </div>
-
-                <div class="complexity-badge">
-                    <i class="fas fa-rocket"></i>
-                    O(E) with good heuristic
-                </div>
-
-                <div class="explore-btn">
-                    Explore A*
                     <i class="fas fa-arrow-right"></i>
                 </div>
             </a>
